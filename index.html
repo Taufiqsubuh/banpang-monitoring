@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Penyaluran Bantuan Pangan (BANPANG)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- html2pdf.js Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    
+    /* Format cetak PDF */
+    .pdf-header { display: none; }
+    .pdf-mode .pdf-header { display: block; }
+    .pdf-mode { font-size: 11px; color: #000; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Navbar -->
+  <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid fa-boxes-packing text-2xl text-yellow-300"></i>
+        <div>
+          <h1 class="font-bold text-lg md:text-xl leading-tight">Monitoring BANPANG</h1>
+          <p class="text-xs text-indigo-200">Sistem Informasi Penyaluran Bantuan Pangan</p>
+        </div>
+      </div>
+      <button onclick="toggleConfigModal()" class="text-xs bg-indigo-600 hover:bg-indigo-800 px-3 py-1.5 rounded-lg transition border border-indigo-400">
+        <i class="fa-solid fa-gear mr-1"></i> Setting API URL
+      </button>
+    </div>
+  </header>
+
+  <!-- Modal Configuration URL GAS -->
+  <div id="configModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+      <h3 class="text-lg font-bold text-slate-800 mb-2">Konfigurasi Endpoint API</h3>
+      <p class="text-xs text-slate-500 mb-4">Masukkan URL Web App dari Google Apps Script yang sudah Anda deploy.</p>
+      <input type="text" id="gasUrlInput" class="w-full text-xs p-2.5 border rounded-lg mb-4 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://script.google.com/macros/s/AKfycbzqGEI79GqnFJNqvo4hHdQfkmJA0vG4EeizD6LvnFyBAFo2YyAbF6_JhrVRcOZClLzb/exec">
+      <div class="flex justify-end space-x-2">
+        <button onclick="toggleConfigModal()" class="px-4 py-2 text-xs bg-slate-200 rounded-lg hover:bg-slate-300">Batal</button>
+        <button onclick="saveGasUrl()" class="px-4 py-2 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold">Simpan & Refresh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Container -->
+  <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+
+    <!-- Loading Indicator -->
+    <div id="loadingState" class="py-12 text-center">
+      <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent mb-3"></div>
+      <p class="text-slate-600 text-sm font-medium">Mengambil data dari spreadsheet...</p>
+    </div>
+
+    <div id="dashboardContent" class="hidden space-y-6">
+
+      <!-- Stats Quick Count Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-slate-100 flex items-center space-x-3">
+          <div class="p-3 bg-blue-100 text-blue-600 rounded-lg"><i class="fa-solid fa-users text-xl"></i></div>
+          <div>
+            <p class="text-xs text-slate-500">Total PBP</p>
+            <h4 id="statTotalPbp" class="text-xl font-bold text-slate-800">0</h4>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-slate-100 flex items-center space-x-3">
+          <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg"><i class="fa-solid fa-circle-check text-xl"></i></div>
+          <div>
+            <p class="text-xs text-slate-500">Diserahkan</p>
+            <h4 id="statTersalurkan" class="text-xl font-bold text-emerald-600">0</h4>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-slate-100 flex items-center space-x-3">
+          <div class="p-3 bg-rose-100 text-rose-600 rounded-lg"><i class="fa-solid fa-clock-rotate-left text-xl"></i></div>
+          <div>
+            <p class="text-xs text-slate-500">Belum Diserahkan</p>
+            <h4 id="statBelumSalur" class="text-xl font-bold text-rose-600">0</h4>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-slate-100 flex items-center space-x-3">
+          <div class="p-3 bg-indigo-100 text-indigo-600 rounded-lg"><i class="fa-solid fa-chart-line text-xl"></i></div>
+          <div>
+            <p class="text-xs text-slate-500">Capaian Progres</p>
+            <h4 id="statProgres" class="text-xl font-bold text-indigo-600">0%</h4>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="flex border-b border-slate-200">
+        <button onclick="switchTab('quickcount')" id="tabBtnQuickCount" class="py-2.5 px-4 font-semibold text-sm border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-2">
+          <i class="fa-solid fa-chart-pie"></i><span>Quick Count Per Desa</span>
+        </button>
+        <button onclick="switchTab('detail')" id="tabBtnDetail" class="py-2.5 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-2">
+          <i class="fa-solid fa-list-check"></i><span>Daftar Data Per Desa</span>
+        </button>
+        <button onclick="switchTab('export')" id="tabBtnExport" class="py-2.5 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-2">
+          <i class="fa-solid fa-file-pdf"></i><span>Cetak PDF Belum Hadir</span>
+        </button>
+      </div>
+
+      <!-- TAB 1: QUICK COUNT -->
+      <div id="tabQuickCount" class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+          <h3 class="font-bold text-slate-800">Ringkasan Real-Time Per Desa</h3>
+          <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">Updated Live</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
+              <tr>
+                <th class="p-3">No</th>
+                <th class="p-3">Desa / Kelurahan</th>
+                <th class="p-3 text-center">Jumlah PBP</th>
+                <th class="p-3 text-center">Diserahkan</th>
+                <th class="p-3 text-center">Belum Diserahkan</th>
+                <th class="p-3 text-center">Progres</th>
+                <th class="p-3 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody id="quickCountTableBody" class="divide-y divide-slate-100 text-slate-700">
+              <!-- Data dimasukkan via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 2: DETAIL DATA PER DESA -->
+      <div id="tabDetail" class="hidden space-y-4">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-3 justify-between items-center">
+          <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <!-- Selector Desa -->
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Pilih Desa</label>
+              <select id="selectDesaDetail" onchange="loadDesaDetail()" class="w-full sm:w-48 text-sm border rounded-lg p-2 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none">
+                <!-- Option desa diisi via JS -->
+              </select>
+            </div>
+            <!-- Filter Status -->
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Status Kehadiran</label>
+              <select id="selectStatusFilter" onchange="filterDetailTable()" class="w-full sm:w-48 text-sm border rounded-lg p-2 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="ALL">Semua Status</option>
+                <option value="BELUM">Belum Diserahkan / Belum Hadir</option>
+                <option value="SUDAH">Sudah Diserahkan</option>
+              </select>
+            </div>
+          </div>
+          <!-- Search Bar -->
+          <div class="w-full md:w-64">
+            <label class="block text-xs font-medium text-slate-500 mb-1">Cari Nama / NIK / KK</label>
+            <div class="relative">
+              <input type="text" id="searchInput" oninput="filterDetailTable()" placeholder="Ketik pencarian..." class="w-full text-sm border rounded-lg pl-8 pr-3 py-2 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none">
+              <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-sm"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
+                <tr>
+                  <th class="p-3">No</th>
+                  <th class="p-3">Nama Penerima (PBP)</th>
+                  <th class="p-3">NIK</th>
+                  <th class="p-3">No. KK</th>
+                  <th class="p-3">Alamat</th>
+                  <th class="p-3 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="detailTableBody" class="divide-y divide-slate-100">
+                <tr><td colspan="6" class="p-4 text-center text-slate-400 text-xs">Silakan pilih desa untuk menampilkan data.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: EXPORT PDF DATA BELUM HADIR -->
+      <div id="tabExport" class="hidden space-y-4">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-end gap-3">
+          <div class="w-full sm:w-64">
+            <label class="block text-xs font-medium text-slate-500 mb-1">Pilih Desa Yang Akan Diexport</label>
+            <select id="selectDesaExport" onchange="previewExportData()" class="w-full text-sm border rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none">
+              <!-- Options via JS -->
+            </select>
+          </div>
+          <button onclick="downloadPDF()" class="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm px-5 py-2.5 rounded-lg transition flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-file-pdf"></i><span>Download / Export PDF</span>
+          </button>
+        </div>
+
+        <!-- Preview PDF Area -->
+        <div class="bg-slate-200 p-4 rounded-xl overflow-x-auto flex justify-center">
+          <div id="pdfPrintArea" class="bg-white p-8 rounded shadow-md w-full max-w-4xl text-slate-900 border">
+            <!-- Kop Laporan PDF -->
+            <div class="text-center border-b-2 border-slate-800 pb-3 mb-4">
+              <h2 class="text-base font-bold uppercase tracking-wide">DAFTAR PENERIMA BANTUAN PANGAN (PBP) BELUM HADIR / BELUM DISERAHKAN</h2>
+              <p class="text-xs font-semibold mt-1">DESA / KELURAHAN: <span id="pdfDesaTitle" class="underline text-indigo-700">...</span></p>
+              <p class="text-[10px] text-slate-500">Tanggal Pengunduhan Data: <span id="pdfDateTitle"></span></p>
+            </div>
+
+            <div class="mb-3 flex justify-between text-xs font-medium">
+              <span>Status: <strong class="text-rose-600">BELUM TERSALURKAN</strong></span>
+              <span>Total Warga: <strong id="pdfTotalCount">0</strong> Orang</span>
+            </div>
+
+            <!-- Tabel PDF -->
+            <table class="w-full text-left text-xs border-collapse border border-slate-300">
+              <thead>
+                <tr class="bg-slate-100 text-slate-800">
+                  <th class="border border-slate-300 p-2 text-center w-10">No</th>
+                  <th class="border border-slate-300 p-2">Nama Penerima</th>
+                  <th class="border border-slate-300 p-2">NIK</th>
+                  <th class="border border-slate-300 p-2">No. KK</th>
+                  <th class="border border-slate-300 p-2">Alamat / RT RW</th>
+                  <th class="border border-slate-300 p-2 text-center w-28">Tanda Tangan</th>
+                </tr>
+              </thead>
+              <tbody id="pdfTableBody">
+                <!-- Row data belum salur -->
+              </tbody>
+            </table>
+
+            <!-- Area Tanda Tangan Petugas -->
+            <div class="mt-8 grid grid-cols-2 text-xs text-center">
+              <div>
+                <p class="mb-12">Mengetahui,<br><strong>Kepala Desa / Kelurahan</strong></p>
+                <p>( .................................... )</p>
+              </div>
+              <div>
+                <p class="mb-12">Petugas Pendamping Lapangan,</p>
+                <p>( .................................... )</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // System State & Variables
+    let GAS_API_URL = localStorage.getItem('GAS_API_URL') || '';
+    let globalQuickCount = [];
+    let globalDesaList = [];
+    let currentDesaData = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('gasUrlInput').value = GAS_API_URL;
+      document.getElementById('pdfDateTitle').innerText = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      
+      if (!GAS_API_URL) {
+        toggleConfigModal();
+        document.getElementById('loadingState').innerHTML = `<p class="text-rose-600 text-sm font-semibold">Silakan masukkan Web App URL Google Apps Script pada menu Setting di atas.</p>`;
+      } else {
+        fetchDashboardData();
+      }
+    });
+
+    function toggleConfigModal() {
+      document.getElementById('configModal').classList.toggle('hidden');
+    }
+
+    function saveGasUrl() {
+      const url = document.getElementById('gasUrlInput').value.trim();
+      if (url) {
+        localStorage.setItem('GAS_API_URL', url);
+        GAS_API_URL = url;
+        toggleConfigModal();
+        fetchDashboardData();
+      }
+    }
+
+    // Ambil Data dari Apps Script
+    async function fetchDashboardData() {
+      document.getElementById('loadingState').classList.remove('hidden');
+      document.getElementById('dashboardContent').classList.add('hidden');
+
+      try {
+        const res = await fetch(`${GAS_API_URL}?action=getAllData`);
+        const data = await res.json();
+
+        if (data.status === 'error') {
+          alert('Error: ' + data.message);
+          return;
+        }
+
+        globalQuickCount = data.quickCount || [];
+        globalDesaList = data.desaList || [];
+
+        renderQuickCountStats();
+        renderQuickCountTable();
+        populateDesaDropdowns();
+
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('dashboardContent').classList.remove('hidden');
+      } catch (err) {
+        console.error(err);
+        document.getElementById('loadingState').innerHTML = `<p class="text-rose-600 text-sm font-semibold">Gagal terhubung ke API Apps Script. Pastikan URL benar dan Akses 'Anyone'.</p>`;
+      }
+    }
+
+    // Render Stats Quick Count
+    function renderQuickCountStats() {
+      let totalPbp = 0, totalTersalurkan = 0, totalBelum = 0;
+
+      globalQuickCount.forEach(item => {
+        totalPbp += item.jumlahPbp;
+        totalTersalurkan += item.diserahkan;
+        totalBelum += item.belumDiserahkan;
+      });
+
+      const progresPct = totalPbp > 0 ? ((totalTersalurkan / totalPbp) * 100).toFixed(2) + '%' : '0%';
+
+      document.getElementById('statTotalPbp').innerText = totalPbp.toLocaleString('id-ID');
+      document.getElementById('statTersalurkan').innerText = totalTersalurkan.toLocaleString('id-ID');
+      document.getElementById('statBelumSalur').innerText = totalBelum.toLocaleString('id-ID');
+      document.getElementById('statProgres').innerText = progresPct;
+    }
+
+    // Render Tabel Quick Count
+    function renderQuickCountTable() {
+      const tbody = document.getElementById('quickCountTableBody');
+      tbody.innerHTML = '';
+
+      if (globalQuickCount.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">Tidak ada data quick count.</td></tr>`;
+        return;
+      }
+
+      globalQuickCount.forEach((item, index) => {
+        const isComplete = item.belumDiserahkan === 0 && item.jumlahPbp > 0;
+        const badgeClass = isComplete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
+        const badgeText = isComplete ? 'Selesai' : 'On Proses';
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3">${index + 1}</td>
+            <td class="p-3 font-semibold text-slate-800">${item.desa}</td>
+            <td class="p-3 text-center font-medium">${item.jumlahPbp.toLocaleString('id-ID')}</td>
+            <td class="p-3 text-center text-emerald-600 font-medium">${item.diserahkan.toLocaleString('id-ID')}</td>
+            <td class="p-3 text-center text-rose-600 font-medium">${item.belumDiserahkan.toLocaleString('id-ID')}</td>
+            <td class="p-3 text-center font-bold text-indigo-600">${item.progres}</td>
+            <td class="p-3 text-center">
+              <span class="text-xs px-2.5 py-1 rounded-full font-medium ${badgeClass}">${badgeText}</span>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // Populate Dropdown Desa
+    function populateDesaDropdowns() {
+      const selDetail = document.getElementById('selectDesaDetail');
+      const selExport = document.getElementById('selectDesaExport');
+
+      selDetail.innerHTML = '<option value="">-- Pilih Desa --</option>';
+      selExport.innerHTML = '<option value="">-- Pilih Desa --</option>';
+
+      globalDesaList.forEach(d => {
+        selDetail.innerHTML += `<option value="${d.sheetName}">${d.displayName}</option>`;
+        selExport.innerHTML += `<option value="${d.sheetName}">${d.displayName}</option>`;
+      });
+    }
+
+    // Tab Switcher
+    function switchTab(tabName) {
+      const tabs = ['quickcount', 'detail', 'export'];
+      tabs.forEach(t => {
+        const content = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+        const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+        
+        if (t === tabName) {
+          content.classList.remove('hidden');
+          btn.classList.add('border-indigo-600', 'text-indigo-600');
+          btn.classList.remove('border-transparent', 'text-slate-500');
+        } else {
+          content.classList.add('hidden');
+          btn.classList.remove('border-indigo-600', 'text-indigo-600');
+          btn.classList.add('border-transparent', 'text-slate-500');
+        }
+      });
+    }
+
+    // Load Data Per Desa
+    async function loadDesaDetail() {
+      const sheetName = document.getElementById('selectDesaDetail').value;
+      const tbody = document.getElementById('detailTableBody');
+      if (!sheetName) return;
+
+      tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Memuat data desa...</td></tr>`;
+
+      try {
+        const res = await fetch(`${GAS_API_URL}?action=getDesaData&desa=${encodeURIComponent(sheetName)}`);
+        const data = await res.json();
+        currentDesaData = data.rows || [];
+        filterDetailTable();
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-rose-500">Gagal mengambil data desa.</td></tr>`;
+      }
+    }
+
+    // Filter Detail Table (Search & Status Filter)
+    function filterDetailTable() {
+      const tbody = document.getElementById('detailTableBody');
+      const statusFilter = document.getElementById('selectStatusFilter').value;
+      const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+
+      let filtered = currentDesaData.filter(row => {
+        let matchStatus = true;
+        if (statusFilter === 'SUDAH') matchStatus = row.isSalur;
+        if (statusFilter === 'BELUM') matchStatus = !row.isSalur;
+
+        let matchSearch = row.nama.toLowerCase().includes(searchQuery) ||
+                          row.nik.toLowerCase().includes(searchQuery) ||
+                          row.kk.toLowerCase().includes(searchQuery);
+
+        return matchStatus && matchSearch;
+      });
+
+      tbody.innerHTML = '';
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Tidak ada data yang sesuai.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach((row, idx) => {
+        const badge = row.isSalur ?
+          `<span class="text-xs bg-emerald-100 text-emerald-700 font-medium px-2 py-0.5 rounded-full">Sudah</span>` :
+          `<span class="text-xs bg-rose-100 text-rose-700 font-medium px-2 py-0.5 rounded-full">Belum Hadir</span>`;
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3">${idx + 1}</td>
+            <td class="p-3 font-semibold text-slate-800">${row.nama}</td>
+            <td class="p-3 text-slate-600">${row.nik.replace("'", "")}</td>
+            <td class="p-3 text-slate-600">${row.kk.replace("'", "")}</td>
+            <td class="p-3 text-slate-600">${row.alamat || '-'}</td>
+            <td class="p-3 text-center">${badge}</td>
+          </tr>
+        `;
+      });
+    }
+
+    // Preview Export PDF Data Belum Salur
+    async function previewExportData() {
+      const sheetName = document.getElementById('selectDesaExport').value;
+      const pdfTableBody = document.getElementById('pdfTableBody');
+      if (!sheetName) return;
+
+      const cleanDesaName = sheetName.replace(/^Kec_/, '');
+      document.getElementById('pdfDesaTitle').innerText = cleanDesaName;
+      pdfTableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Memuat data belum tersalurkan...</td></tr>`;
+
+      try {
+        const res = await fetch(`${GAS_API_URL}?action=getDesaData&desa=${encodeURIComponent(sheetName)}`);
+        const data = await res.json();
+        
+        // Filter hanya yang BELUM hadir / tersalurkan
+        const belumSalurRows = (data.rows || []).filter(r => !r.isSalur);
+
+        document.getElementById('pdfTotalCount').innerText = belumSalurRows.length;
+        pdfTableBody.innerHTML = '';
+
+        if (belumSalurRows.length === 0) {
+          pdfTableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-emerald-600 font-medium">Semua penerima bantuan di desa ini sudah tersalurkan!</td></tr>`;
+          return;
+        }
+
+        belumSalurRows.forEach((row, idx) => {
+          pdfTableBody.innerHTML += `
+            <tr>
+              <td class="border border-slate-300 p-2 text-center">${idx + 1}</td>
+              <td class="border border-slate-300 p-2 font-medium">${row.nama}</td>
+              <td class="border border-slate-300 p-2">${row.nik.replace("'", "")}</td>
+              <td class="border border-slate-300 p-2">${row.kk.replace("'", "")}</td>
+              <td class="border border-slate-300 p-2">${row.alamat || '-'}</td>
+              <td class="border border-slate-300 p-2 text-center text-slate-400 font-light">........................</td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        pdfTableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-rose-500">Gagal memuat data PDF.</td></tr>`;
+      }
+    }
+
+    // Generate & Download PDF Function
+    function downloadPDF() {
+      const element = document.getElementById('pdfPrintArea');
+      const desaName = document.getElementById('pdfDesaTitle').innerText || 'Desa';
+      
+      const opt = {
+        margin:       [10, 10, 10, 10],
+        filename:     `Data_Belum_Hadir_BANPANG_${desaName.replace(/\s+/g, '_')}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(element).save();
+    }
+  </script>
+</body>
+</html>
