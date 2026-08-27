@@ -3,26 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Penyaluran Bantuan Pangan (BANPANG)</title>
-  <!-- Tailwind CSS CDN -->
+  <title>Monitoring Penyaluran BANPANG</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- html2pdf.js Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
-    
-    /* Format cetak PDF */
-    .pdf-header { display: none; }
-    .pdf-mode .pdf-header { display: block; }
-    .pdf-mode { font-size: 11px; color: #000; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-  <!-- Navbar -->
+  <!-- Header / Navbar -->
   <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
       <div class="flex items-center space-x-3">
@@ -38,12 +30,12 @@
     </div>
   </header>
 
-  <!-- Modal Configuration URL GAS -->
+  <!-- Modal Config API URL -->
   <div id="configModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
       <h3 class="text-lg font-bold text-slate-800 mb-2">Konfigurasi Endpoint API</h3>
       <p class="text-xs text-slate-500 mb-4">Masukkan URL Web App dari Google Apps Script yang sudah Anda deploy.</p>
-      <input type="text" id="gasUrlInput" class="w-full text-xs p-2.5 border rounded-lg mb-4 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://script.google.com/macros/s/AKfycbzqGEI79GqnFJNqvo4hHdQfkmJA0vG4EeizD6LvnFyBAFo2YyAbF6_JhrVRcOZClLzb/exec">
+      <input type="text" id="gasUrlInput" class="w-full text-xs p-2.5 border rounded-lg mb-4 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://script.google.com/macros/s/AKfycbwKVJAz_h1YPSZIIMkvw_SYRZhFXO3JdC0Uj9vFE19ZH5dPKIAysJpzMV0UhfZkljA-/exec">
       <div class="flex justify-end space-x-2">
         <button onclick="toggleConfigModal()" class="px-4 py-2 text-xs bg-slate-200 rounded-lg hover:bg-slate-300">Batal</button>
         <button onclick="saveGasUrl()" class="px-4 py-2 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold">Simpan & Refresh</button>
@@ -127,7 +119,6 @@
               </tr>
             </thead>
             <tbody id="quickCountTableBody" class="divide-y divide-slate-100 text-slate-700">
-              <!-- Data dimasukkan via JS -->
             </tbody>
           </table>
         </div>
@@ -137,11 +128,11 @@
       <div id="tabDetail" class="hidden space-y-4">
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-3 justify-between items-center">
           <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            <!-- Selector Desa -->
+            <!-- Dropdown Pilih Desa -->
             <div>
               <label class="block text-xs font-medium text-slate-500 mb-1">Pilih Desa</label>
-              <select id="selectDesaDetail" onchange="loadDesaDetail()" class="w-full sm:w-48 text-sm border rounded-lg p-2 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none">
-                <!-- Option desa diisi via JS -->
+              <select id="selectDesaDetail" onchange="loadDesaDetail()" class="w-full sm:w-56 text-sm border rounded-lg p-2 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-indigo-700">
+                <option value="">-- Pilih Desa --</option>
               </select>
             </div>
             <!-- Filter Status -->
@@ -178,7 +169,7 @@
                 </tr>
               </thead>
               <tbody id="detailTableBody" class="divide-y divide-slate-100">
-                <tr><td colspan="6" class="p-4 text-center text-slate-400 text-xs">Silakan pilih desa untuk menampilkan data.</td></tr>
+                <tr><td colspan="6" class="p-4 text-center text-slate-400 text-xs">Silakan pilih desa pada menu di atas.</td></tr>
               </tbody>
             </table>
           </div>
@@ -190,8 +181,8 @@
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-end gap-3">
           <div class="w-full sm:w-64">
             <label class="block text-xs font-medium text-slate-500 mb-1">Pilih Desa Yang Akan Diexport</label>
-            <select id="selectDesaExport" onchange="previewExportData()" class="w-full text-sm border rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none">
-              <!-- Options via JS -->
+            <select id="selectDesaExport" onchange="previewExportData()" class="w-full text-sm border rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-indigo-700">
+              <option value="">-- Pilih Desa --</option>
             </select>
           </div>
           <button onclick="downloadPDF()" class="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm px-5 py-2.5 rounded-lg transition flex items-center justify-center space-x-2">
@@ -199,14 +190,13 @@
           </button>
         </div>
 
-        <!-- Preview PDF Area -->
+        <!-- Area Preview Cetak PDF -->
         <div class="bg-slate-200 p-4 rounded-xl overflow-x-auto flex justify-center">
           <div id="pdfPrintArea" class="bg-white p-8 rounded shadow-md w-full max-w-4xl text-slate-900 border">
-            <!-- Kop Laporan PDF -->
             <div class="text-center border-b-2 border-slate-800 pb-3 mb-4">
               <h2 class="text-base font-bold uppercase tracking-wide">DAFTAR PENERIMA BANTUAN PANGAN (PBP) BELUM HADIR / BELUM DISERAHKAN</h2>
               <p class="text-xs font-semibold mt-1">DESA / KELURAHAN: <span id="pdfDesaTitle" class="underline text-indigo-700">...</span></p>
-              <p class="text-[10px] text-slate-500">Tanggal Pengunduhan Data: <span id="pdfDateTitle"></span></p>
+              <p class="text-[10px] text-slate-500">Tanggal Pengunduhan: <span id="pdfDateTitle"></span></p>
             </div>
 
             <div class="mb-3 flex justify-between text-xs font-medium">
@@ -214,7 +204,6 @@
               <span>Total Warga: <strong id="pdfTotalCount">0</strong> Orang</span>
             </div>
 
-            <!-- Tabel PDF -->
             <table class="w-full text-left text-xs border-collapse border border-slate-300">
               <thead>
                 <tr class="bg-slate-100 text-slate-800">
@@ -227,11 +216,9 @@
                 </tr>
               </thead>
               <tbody id="pdfTableBody">
-                <!-- Row data belum salur -->
               </tbody>
             </table>
 
-            <!-- Area Tanda Tangan Petugas -->
             <div class="mt-8 grid grid-cols-2 text-xs text-center">
               <div>
                 <p class="mb-12">Mengetahui,<br><strong>Kepala Desa / Kelurahan</strong></p>
@@ -250,7 +237,6 @@
   </main>
 
   <script>
-    // System State & Variables
     let GAS_API_URL = localStorage.getItem('GAS_API_URL') || '';
     let globalQuickCount = [];
     let globalDesaList = [];
@@ -282,7 +268,6 @@
       }
     }
 
-    // Ambil Data dari Apps Script
     async function fetchDashboardData() {
       document.getElementById('loadingState').classList.remove('hidden');
       document.getElementById('dashboardContent').classList.add('hidden');
@@ -307,11 +292,10 @@
         document.getElementById('dashboardContent').classList.remove('hidden');
       } catch (err) {
         console.error(err);
-        document.getElementById('loadingState').innerHTML = `<p class="text-rose-600 text-sm font-semibold">Gagal terhubung ke API Apps Script. Pastikan URL benar dan Akses 'Anyone'.</p>`;
+        document.getElementById('loadingState').innerHTML = `<p class="text-rose-600 text-sm font-semibold">Gagal terhubung ke API Apps Script. Pastikan URL benar dan akses diset ke 'Anyone'.</p>`;
       }
     }
 
-    // Render Stats Quick Count
     function renderQuickCountStats() {
       let totalPbp = 0, totalTersalurkan = 0, totalBelum = 0;
 
@@ -329,7 +313,6 @@
       document.getElementById('statProgres').innerText = progresPct;
     }
 
-    // Render Tabel Quick Count
     function renderQuickCountTable() {
       const tbody = document.getElementById('quickCountTableBody');
       tbody.innerHTML = '';
@@ -360,7 +343,6 @@
       });
     }
 
-    // Populate Dropdown Desa
     function populateDesaDropdowns() {
       const selDetail = document.getElementById('selectDesaDetail');
       const selExport = document.getElementById('selectDesaExport');
@@ -368,13 +350,21 @@
       selDetail.innerHTML = '<option value="">-- Pilih Desa --</option>';
       selExport.innerHTML = '<option value="">-- Pilih Desa --</option>';
 
-      globalDesaList.forEach(d => {
-        selDetail.innerHTML += `<option value="${d.sheetName}">${d.displayName}</option>`;
-        selExport.innerHTML += `<option value="${d.sheetName}">${d.displayName}</option>`;
-      });
+      // Mengisi opsi dari daftar desa yang dikirimkan Apps Script
+      if (globalDesaList.length > 0) {
+        globalDesaList.forEach(d => {
+          selDetail.innerHTML += `<option value="${d.sheetName}">${d.displayName}</option>`;
+          selExport.innerHTML += `<option value="${d.sheetName}">${d.displayName}</option>`;
+        });
+      } else if (globalQuickCount.length > 0) {
+        // Fallback jika globalDesaList kosong, gunakan dari Quick Count
+        globalQuickCount.forEach(q => {
+          selDetail.innerHTML += `<option value="${q.desa}">${q.desa}</option>`;
+          selExport.innerHTML += `<option value="${q.desa}">${q.desa}</option>`;
+        });
+      }
     }
 
-    // Tab Switcher
     function switchTab(tabName) {
       const tabs = ['quickcount', 'detail', 'export'];
       tabs.forEach(t => {
@@ -393,7 +383,6 @@
       });
     }
 
-    // Load Data Per Desa
     async function loadDesaDetail() {
       const sheetName = document.getElementById('selectDesaDetail').value;
       const tbody = document.getElementById('detailTableBody');
@@ -411,7 +400,6 @@
       }
     }
 
-    // Filter Detail Table (Search & Status Filter)
     function filterDetailTable() {
       const tbody = document.getElementById('detailTableBody');
       const statusFilter = document.getElementById('selectStatusFilter').value;
@@ -445,8 +433,8 @@
           <tr class="hover:bg-slate-50">
             <td class="p-3">${idx + 1}</td>
             <td class="p-3 font-semibold text-slate-800">${row.nama}</td>
-            <td class="p-3 text-slate-600">${row.nik.replace("'", "")}</td>
-            <td class="p-3 text-slate-600">${row.kk.replace("'", "")}</td>
+            <td class="p-3 text-slate-600">${row.nik}</td>
+            <td class="p-3 text-slate-600">${row.kk}</td>
             <td class="p-3 text-slate-600">${row.alamat || '-'}</td>
             <td class="p-3 text-center">${badge}</td>
           </tr>
@@ -454,21 +442,19 @@
       });
     }
 
-    // Preview Export PDF Data Belum Salur
     async function previewExportData() {
       const sheetName = document.getElementById('selectDesaExport').value;
       const pdfTableBody = document.getElementById('pdfTableBody');
       if (!sheetName) return;
 
-      const cleanDesaName = sheetName.replace(/^Kec_/, '');
+      const cleanDesaName = sheetName.replace(/^Kec[_\s]*/i, '');
       document.getElementById('pdfDesaTitle').innerText = cleanDesaName;
-      pdfTableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Memuat data belum tersalurkan...</td></tr>`;
+      pdfTableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Memuat data warga yang belum hadir...</td></tr>`;
 
       try {
         const res = await fetch(`${GAS_API_URL}?action=getDesaData&desa=${encodeURIComponent(sheetName)}`);
         const data = await res.json();
         
-        // Filter hanya yang BELUM hadir / tersalurkan
         const belumSalurRows = (data.rows || []).filter(r => !r.isSalur);
 
         document.getElementById('pdfTotalCount').innerText = belumSalurRows.length;
@@ -484,8 +470,8 @@
             <tr>
               <td class="border border-slate-300 p-2 text-center">${idx + 1}</td>
               <td class="border border-slate-300 p-2 font-medium">${row.nama}</td>
-              <td class="border border-slate-300 p-2">${row.nik.replace("'", "")}</td>
-              <td class="border border-slate-300 p-2">${row.kk.replace("'", "")}</td>
+              <td class="border border-slate-300 p-2">${row.nik}</td>
+              <td class="border border-slate-300 p-2">${row.kk}</td>
               <td class="border border-slate-300 p-2">${row.alamat || '-'}</td>
               <td class="border border-slate-300 p-2 text-center text-slate-400 font-light">........................</td>
             </tr>
@@ -496,7 +482,6 @@
       }
     }
 
-    // Generate & Download PDF Function
     function downloadPDF() {
       const element = document.getElementById('pdfPrintArea');
       const desaName = document.getElementById('pdfDesaTitle').innerText || 'Desa';
