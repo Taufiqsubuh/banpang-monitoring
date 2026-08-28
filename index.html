@@ -59,7 +59,7 @@
   <div id="configModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print">
     <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
       <h3 class="text-lg font-bold text-slate-800 mb-2">Konfigurasi Endpoint API</h3>
-      <p class="text-xs text-slate-500 mb-4">Masukkan URL Web App dari Google Apps Script yang sudah Anda deploy.</p>
+      <p class="text-xs text-slate-500 mb-4">Masukkan URL Web App dari Admin Banpang.</p>
       <input type="text" id="gasUrlInput" class="w-full text-xs p-2.5 border rounded-lg mb-4 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://script.google.com/macros/s/.../exec">
       <div class="flex justify-end space-x-2">
         <button onclick="toggleConfigModal()" class="px-4 py-2 text-xs bg-slate-200 rounded-lg hover:bg-slate-300">Batal</button>
@@ -74,7 +74,7 @@
     <!-- Loading Indicator -->
     <div id="loadingState" class="py-12 text-center">
       <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent mb-3"></div>
-      <p class="text-slate-600 text-sm font-medium">Mengambil data dari spreadsheet...</p>
+      <p class="text-slate-600 text-sm font-medium">Mengambil data dari penyaluran hari ini...</p>
     </div>
 
     <!-- Error State -->
